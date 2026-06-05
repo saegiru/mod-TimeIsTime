@@ -50,7 +50,7 @@ Examples:
 
 `TimeIsTime.TimeStart`
 
-Optional Unix timestamp used as the virtual clock phase anchor. Leave this at `0` to use Unix epoch time. This setting changes the day/night phase, not server-side calendar systems.
+Optional non-negative Unix timestamp used as the virtual clock phase anchor. Leave this at `0` to use Unix epoch time. This setting changes the day/night phase, not server-side calendar systems.
 
 `TimeIsTime.HourOffset`
 
@@ -58,4 +58,4 @@ Optional hour offset added to the virtual clock. The accepted range is `-24.0` t
 
 ## Reload Behavior
 
-The module reloads its settings through AzerothCore's config reload flow. When the config is reloaded, the updated time-speed packet is sent to all online players. If the module is disabled during reload, online players are sent the default Blizzlike time-speed packet.
+The module reloads its settings through AzerothCore's config reload flow. Reloaded settings apply to players as they log in. Already connected players should reconnect to receive the new client-side time-speed packet.

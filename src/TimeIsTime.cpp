@@ -15,12 +15,9 @@
 #include "Opcodes.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-#include "WorldSessionMgr.h"
 #include <algorithm>
 #include <cmath>
-#include <exception>
 #include <limits>
-#include <string>
 
 namespace
 {
@@ -56,28 +53,15 @@ namespace
         return value;
     }
 
-    uint32 GetTimeStartConfig()
+    uint32 ValidateTimeStart(int32 value)
     {
-        std::string const value = sConfigMgr->GetOption<std::string>("TimeIsTime.TimeStart", "0");
-
-        try
+        if (value < 0)
         {
-            size_t parsedChars = 0;
-            int64 const parsedValue = std::stoll(value, &parsedChars);
-
-            if (parsedChars != value.length() || parsedValue < 0 || parsedValue > static_cast<int64>(std::numeric_limits<uint32>::max()))
-            {
-                LOG_ERROR("module.timeistime", "TimeIsTime.TimeStart={} is not a valid unsigned 32-bit Unix timestamp. Using 0.", value);
-                return 0;
-            }
-
-            return static_cast<uint32>(parsedValue);
-        }
-        catch (std::exception const&)
-        {
-            LOG_ERROR("module.timeistime", "TimeIsTime.TimeStart={} is not a valid unsigned 32-bit Unix timestamp. Using 0.", value);
+            LOG_ERROR("module.timeistime", "TimeIsTime.TimeStart={} is negative. Using 0.", value);
             return 0;
         }
+
+        return static_cast<uint32>(value);
     }
 
     int64 PositiveModulo(int64 value, int64 divisor)
@@ -134,51 +118,42 @@ namespace
         SendTimeSpeedPacket(player->GetSession());
     }
 
-    void SendTimeSpeedPacketToOnlinePlayers()
-    {
-        WorldSessionMgr::SessionMap const& sessionMap = sWorldSessionMgr->GetAllSessions();
-        for (WorldSessionMgr::SessionMap::const_iterator itr = sessionMap.begin(); itr != sessionMap.end(); ++itr)
-        {
-            if (WorldSession* session = itr->second)
-                if (session->GetPlayer())
-                    SendTimeSpeedPacket(session);
-        }
-    }
-
     void LoadTimeIsTimeConfig()
     {
         TimeIsTimeEnable = sConfigMgr->GetOption<bool>("TimeIsTime.Enable", true);
         TimeIsTimeAnnounce = sConfigMgr->GetOption<bool>("TimeIsTime.Announce", true);
         TimeIsTimeSpeedRate = ValidateFloat("TimeIsTime.SpeedRate", sConfigMgr->GetOption<float>("TimeIsTime.SpeedRate", DefaultSpeedRate), DefaultSpeedRate, MinSpeedRate, MaxSpeedRate);
         TimeIsTimeHourOffset = ValidateFloat("TimeIsTime.HourOffset", sConfigMgr->GetOption<float>("TimeIsTime.HourOffset", 0.0f), 0.0f, MinHourOffset, MaxHourOffset);
-        TimeIsTimeTimeStart = GetTimeStartConfig();
+        TimeIsTimeTimeStart = ValidateTimeStart(sConfigMgr->GetOption<int32>("TimeIsTime.TimeStart", 0));
     }
 }
 
-class TimeIsTimeWorld : public WorldScript {
+class TimeIsTimeWorld : public WorldScript
+{
 public:
 
     TimeIsTimeWorld() : WorldScript("TimeIsTimeWorld") { }
 
-    void OnAfterConfigLoad(bool reload) override {
+    void OnBeforeConfigLoad(bool /*reload*/) override
+    {
         LoadTimeIsTimeConfig();
-
-        if (reload)
-            SendTimeSpeedPacketToOnlinePlayers();
     }
 };
 
-class TimeIsTime : public PlayerScript {
+class TimeIsTime : public PlayerScript
+{
 public:
 
     TimeIsTime() : PlayerScript("TimeIsTime") { }
 
-    void OnPlayerLogin(Player* player) override {
+    void OnPlayerLogin(Player* player) override
+    {
         if (TimeIsTimeEnable && TimeIsTimeAnnounce)
             ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00TimeIsTime |rmodule");
     }
 
-    void OnPlayerSendInitialPacketsBeforeAddToMap(Player* player, WorldPacket& /*data*/) override {
+    void OnPlayerSendInitialPacketsBeforeAddToMap(Player* player, WorldPacket& /*data*/) override
+    {
         if (!TimeIsTimeEnable)
             return;
 
@@ -186,7 +161,8 @@ public:
     }
 };
 
-void AddTimeIsTimeScripts() {
+void AddTimeIsTimeScripts()
+{
     new TimeIsTimeWorld();
     new TimeIsTime();
 }
