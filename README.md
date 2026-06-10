@@ -1,8 +1,14 @@
 # mod-TimeIsTime
 
-TimeIsTime is an AzerothCore module for World of Warcraft 3.3.5a that changes the client-side day/night cycle speed sent by `SMSG_LOGIN_SETTIMESPEED`.
+TimeIsTime is an AzerothCore module for World of Warcraft 3.3.5a that changes the client-side day/night cycle through `SMSG_LOGIN_SETTIMESPEED`.
 
-The module keeps one realm-wide virtual day/night phase. By default the phase is calculated from Unix epoch time, so it stays continuous across worldserver restarts. You can set `TimeIsTime.TimeStart` to choose a custom phase anchor, then the cycle advances by real elapsed time multiplied by `TimeIsTime.SpeedRate`.
+The module keeps one deterministic realm-wide day/night phase:
+
+```text
+phase = anchor time of day + (current Unix time - anchor) * speed + hour offset
+```
+
+This keeps the cycle consistent between players and across worldserver restarts. It changes the client clock and lighting cycle only; server-side calendars, resets, events, and database timestamps are unaffected.
 
 ## Installation
 
@@ -34,7 +40,7 @@ Shows a login message when the module is enabled.
 
 `TimeIsTime.SpeedRate`
 
-Controls how fast the client-side game clock advances. The accepted range is `0.001` to `240.0`; invalid values are clamped and logged.
+Controls how fast the client-side game clock advances. The accepted range is `0.01` to `240.0`; invalid configuration values are clamped and logged.
 
 Examples:
 
@@ -50,7 +56,7 @@ Examples:
 
 `TimeIsTime.TimeStart`
 
-Optional non-negative Unix timestamp used as the virtual clock phase anchor. Leave this at `0` to use Unix epoch time. This setting changes the day/night phase, not server-side calendar systems.
+Optional non-negative Unix timestamp used as the virtual clock phase anchor. At that timestamp, the displayed clock uses the timestamp's time of day. Leave this at `0` to use Unix epoch time.
 
 `TimeIsTime.HourOffset`
 
@@ -58,4 +64,19 @@ Optional hour offset added to the virtual clock. The accepted range is `-24.0` t
 
 ## Reload Behavior
 
-The module reloads its settings through AzerothCore's config reload flow. Reloaded settings apply to players as they log in. Already connected players should reconnect to receive the new client-side time-speed packet.
+Reloading AzerothCore's configuration resets runtime values to the configured defaults. Reloaded settings apply as players log in; already connected players should reconnect.
+
+## GM Commands
+
+The following commands require `SEC_GAMEMASTER` or higher:
+
+```text
+.timeistime status
+.timeistime speed <0.01-240.0>
+.timeistime offset <-24.0-24.0>
+.timeistime reset
+```
+
+`speed` changes the rate without changing the current displayed time. `offset` shifts the displayed time by the difference from the previous offset. Both commands immediately update online players.
+
+Runtime command changes are temporary. They reset when the configuration is reloaded or worldserver restarts. Use the configuration file for permanent changes.

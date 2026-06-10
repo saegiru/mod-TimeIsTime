@@ -2,7 +2,7 @@
 # Azerothcore Module:     TimeIsTime
 # Author:                 Dunjeon
 # Contributing Author(s): lasyan3, vratam @ RegWorks
-# Version:                20250608
+# Version:                20260609
 # License:                GNU Affero General Public License v3.0
 #####################################################################################################
 [worldserver]
@@ -30,7 +30,7 @@ TimeIsTime.Enable = 1
 # Adjust the number of game days per real day by altering the Realm Timer
 # Settings: 60 is 1 second (Real Time) = 1 minute (Realm Timer)
 #
-#           Accepted range: 0.001 to 240.0
+#           Accepted range: 0.01 to 240.0
 #           Invalid values are clamped and logged.
 #
 #           60.0  = 1 Game Day every 24   minutes
@@ -47,13 +47,14 @@ TimeIsTime.SpeedRate = 1.0
 
 # TimeStart and HourOffset:
 #####################################################################################################
-# TimeStart is an optional Unix timestamp used as the realm-wide virtual clock phase anchor.
-# Leave it at 0 to use Unix epoch time. This keeps the cycle continuous across restarts.
+# TimeStart is an optional non-negative Unix timestamp used as the realm-wide clock phase anchor.
+# At TimeStart, the displayed clock uses TimeStart's time of day. The clock then advances at
+# SpeedRate. Leave it at 0 to use Unix epoch time. This keeps the cycle continuous across restarts.
 #
 # HourOffset adds or subtracts hours from the virtual clock.
 # Accepted range: -24.0 to 24.0. Invalid values are clamped and logged.
 #
-# Default:  0  (Unix epoch phase)
+# Default:  0 (Unix epoch phase)
 # Example:  Based on the settings below, the GMT TimeStart and HourOffset would be:
 #           TimeIsTime.TimeStart = 1213963200
 #           TimeIsTime.HourOffset = 5
